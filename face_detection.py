@@ -169,9 +169,7 @@ def extract_polygonal_roi(image, mask, cutout):
 
     mask_expanded = np.expand_dims(mask, axis=2)
 
-    roi = (
-        image[min_y:max_y, min_x:max_x, :] * mask_expanded[min_y:max_y, min_x:max_x, :]
-    )
+    roi = image[min_y:max_y, min_x:max_x] * mask_expanded[min_y:max_y, min_x:max_x]
 
     return roi
 

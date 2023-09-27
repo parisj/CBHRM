@@ -1,0 +1,5 @@
+----------------------------------------------
+Performance Evaluation
+----------------------------------------------
+python -m cProfile -o program.prof program.py
+snakeviz program.prof
