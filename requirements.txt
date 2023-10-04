@@ -1,0 +1,6 @@
+mediapipe
+plotly 
+dash 
+opencv-python
+pandas
+toml
