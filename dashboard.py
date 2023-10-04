@@ -25,7 +25,7 @@ def run_dash_app(control_obj: "control.Control"):
             dcc.Graph(id="head-pose-plot"),
             dcc.Interval(
                 id="interval-update",
-                interval=1 * 33,
+                interval=1 * 105,
                 n_intervals=0,
             ),
         ]
@@ -42,7 +42,7 @@ def run_dash_app(control_obj: "control.Control"):
     )
     def update_plots(n):
         # print("Updating plots")
-        frame, roi, rgb, head_pose = control_obj.get_samples_plot()
+        frame, roi, rgb, head_pose = control_obj.get_samples()
 
         if frame is None or roi is None or rgb is None or head_pose is None:
             return dash.no_update  # Don't update the figure if data is None
