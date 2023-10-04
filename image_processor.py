@@ -7,13 +7,27 @@ import control
 
 
 def capture_frame() -> np.array:
+    WIDTH = 1920
+    HEIGHT = 1080
     cap = cv2.VideoCapture(0)
+
+    cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    fps = cap.get(cv2.CAP_PROP_FPS)
+
     while cap.isOpened():
         ret, frame = cap.read()
         if ret == False:
             break
         if cv2.waitKey(1) & 0xFF == ord("q"):
             break
+        print(frame.shape)
+        frame = frame[250:800, 640:1280]
+        cv2.imshow("frame", frame)
         yield frame
     cap.release()
     cv2.destroyAllWindows()
@@ -89,7 +103,8 @@ def calculate_head_pose(
             [1.0 * frame_shape[1], frame_shape[0] / 2, 0.0],
             [0.0, 1.0 * frame_shape[1], frame_shape[1] / 2],
             [0.0, 0.0, 1.0],
-        ]
+        ],
+        dtype="double",
     )
     camera_distortion = np.zeros((4, 1))
     world_coords = np.array(world_coords, dtype=np.float64)
@@ -99,7 +114,10 @@ def calculate_head_pose(
     )
     rmat, jac = cv2.Rodrigues(rotation_vec)
     angles, mtxR, mtxQ, Qx, Qy, Qz = cv2.RQDecomp3x3(rmat)
-
+    print(type(angles))
+    angles = np.array(angles, dtype=np.float64)
+    angles = (angles - 180) * 360 / (2 * np.pi)
+    print(angles)
     return angles
 
 

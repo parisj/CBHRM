@@ -36,10 +36,6 @@ class Control:
         samples = self.blackboard.get_samples()
         return samples
 
-    def get_samples_plot(self) -> tuple:
-        samples = self.blackboard.get_samples_plot()
-        return samples
-
 
 if __name__ == "__main__":
     blackboard = Blackboard(256)
