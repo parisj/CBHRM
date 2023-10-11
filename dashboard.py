@@ -26,7 +26,7 @@ def run_dash_app(control_obj: "control.Control"):
             dcc.Graph(id="rPPG-plot"),
             dcc.Interval(
                 id="plot_images",
-                interval=1 * 33,
+                interval=1 * 150,
                 n_intervals=0,
             ),
             dcc.Interval(
@@ -72,7 +72,7 @@ def run_dash_app(control_obj: "control.Control"):
         rgb = control_obj.get_samples_rgb()
         head_pose = control_obj.blackboard.get_samples_head_pose()
         rPPG = control_obj.get_samples_rPPG()
-        # rPPG_filtered = control_obj.blackboard.get_samples_rhythmic()
+        rhythmic = control_obj.blackboard.get_samples_rhythmic()
         rPPG_filtered = control_obj.blackboard.get_bandpass_filtered()
 
         if rgb is None or head_pose is None or rPPG is None or rPPG_filtered is None:
@@ -85,7 +85,7 @@ def run_dash_app(control_obj: "control.Control"):
         rPPG_filtered = rPPG_filtered.tolist()
         rgb_plot = pf.plot_rgb_channels(rgb)
         head_pose_plot = pf.plot_head_pose(head_pose)
-        rPPG_plot = pf.plot_rPPG_signal_and_noise(rPPG, rPPG_filtered)
+        rPPG_plot = pf.plot_rPPG_signal_and_noise(rPPG, rPPG_filtered, rhythmic)
 
         return rgb_plot, head_pose_plot, rPPG_plot
 

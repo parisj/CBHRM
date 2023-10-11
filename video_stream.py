@@ -13,7 +13,7 @@ class VideoStream:
         self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
         self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
-        self.stream.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        self.stream.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
         self.stopped = False
 

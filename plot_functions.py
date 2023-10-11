@@ -76,23 +76,29 @@ def plot_head_pose(head_pose):
     }
 
 
-def plot_rPPG_signal_and_noise(rPPG, rPPG_filtered):
+def plot_rPPG_signal_and_noise(rPPG, rPPG_filtered, rhythmic):
     """
     Plot rPPG signal.
     """
     return {
         "data": [
-            # {
-            #    "x": list(range(256)),
-            #    "y": list(rPPG),
-            #    "type": "scatter",
-            #    "name": "rPPG",
-            # },
+            {
+                "x": list(range(256)),
+                "y": list(rPPG),
+                "type": "scatter",
+                "name": "rPPG",
+            },
             {
                 "x": list(range(256)),
                 "y": list(rPPG_filtered),
                 "type": "scatter",
                 "name": "Processed rPPG",
+            },
+            {
+                "x": list(range(256)),
+                "y": list(rhythmic),
+                "type": "scatter",
+                "name": "rhythmic subtracted (no filtering)",
             },
         ],
         "layout": {"title": "rPPG signal"},
