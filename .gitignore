@@ -1,2 +1,9 @@
 .venv
 __pycache__
+api
+influxd.bolt
+influxd.sqlite
+legacy_dashboard.py
+engine
+
+

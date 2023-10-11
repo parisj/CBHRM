@@ -36,6 +36,26 @@ class Control:
         samples = self.blackboard.get_samples()
         return samples
 
+    def get_signal_samples(self) -> tuple:
+        samples = self.blackboard.get_signal_samples()
+        return samples
+
+    def get_samples_rgb(self) -> tuple:
+        samples = self.blackboard.get_samples_rgb()
+        return samples
+
+    def get_samples_head_pose(self) -> tuple:
+        samples = self.blackboard.get_samples_head_pose()
+        return samples
+
+    def get_samples_rPPG(self) -> tuple:
+        samples = self.blackboard.get_samples_rPPG()
+        return samples
+
+    def get_samples_rhythmic(self) -> tuple:
+        samples = self.blackboard.get_samples_rhythmic()
+        return samples
+
 
 if __name__ == "__main__":
     blackboard = Blackboard(256)
@@ -43,5 +63,10 @@ if __name__ == "__main__":
     control_obj = Control(blackboard, 256, signal_processor)
     dash_thread = threading.Thread(target=run_dash_app, args=(control_obj,))
     dash_thread.start()
+
+    signal_processor_thread = threading.Thread(
+        target=signal_processor.signal_processing_function
+    )
+    signal_processor_thread.start()
     for i in ip.face_processing(control_obj):
         pass
