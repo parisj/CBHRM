@@ -4,14 +4,13 @@ from threading import Thread
 
 class VideoStream:
     def __init__(self, src=0):
-        WIDTH = 1280
-        HEIGHT = 1080
-
+        # cv2.CAP_GSTREAMER
+        #
         self.stream = cv2.VideoCapture(src, cv2.CAP_DSHOW)
         self.stream.set(cv2.CAP_PROP_FPS, 30)
         self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
-        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+        # self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+        # self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
         self.stream.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 

@@ -122,7 +122,7 @@ class Signal_processor:
         low = highest_freq - 0.235
 
         # Design 50th-order Butterworth bandpass filter
-        b, a = butter(N=50, Wn=[low, high], btype="bandpass", fs=sampling_rate)
+        b, a = butter(N=4, Wn=[low, high], btype="bandpass", fs=sampling_rate)
 
         # Apply filter
         bandpass_filtered = filtfilt(b, a, rPPG, padlen=255)
@@ -148,6 +148,7 @@ class Signal_processor:
             # Time managment
             duration = time.time() - start_time
             sleep_time = max(0, 1 / 4 - duration)
+            # TODO WARNING: sleep time is not working properly
             time.sleep(sleep_time)
 
             # postprocessing steps

@@ -26,7 +26,7 @@ def run_dash_app(control_obj: "control.Control"):
             dcc.Graph(id="rPPG-plot"),
             dcc.Interval(
                 id="plot_images",
-                interval=1 * 150,
+                interval=1 * 300,
                 n_intervals=0,
             ),
             dcc.Interval(
