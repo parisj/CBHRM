@@ -16,8 +16,8 @@ class VideoStream:
 
         self.stream.set(cv2.CAP_PROP_FPS, 30)
         self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
-        # self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        # self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
+        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
 
         self.stopped = False
 
