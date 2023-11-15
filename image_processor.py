@@ -101,7 +101,7 @@ def calculate_head_pose(
     angles, _, _, _, _, _ = cv2.RQDecomp3x3(rmat)
     x = angles[0] * 360
     y = angles[1] * 360
-    z = angles[2] * 360
+    z = angles[2] * 3600 * 2
     # print(angles)
     return (x, y, z)
 
@@ -124,7 +124,11 @@ def headpose_landmarks(
 
     head_lm_3d = np.array(
         [
-            [int(lm[i].x * image_shape[1]), int(lm[i].y * image_shape[0]), lm[i].z]
+            [
+                int(lm[i].x * image_shape[1]),
+                int(lm[i].y * image_shape[0]),
+                lm[i].z,
+            ]
             for i in lm_pose
         ],
         dtype=np.float64,
@@ -161,7 +165,6 @@ def face_processing(control_pass) -> (np.array, np.array, list):
             # Calculate FPS
             current_time = time.time()
             fps = 1 / (current_time - prev_time)
-            prev_time = current_time
 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -192,25 +195,14 @@ def face_processing(control_pass) -> (np.array, np.array, list):
                     # print("pose_angles", pose_angles, "\n")
                     # retrieve rgb samples from roi
                     rgb_samples = mean_intensities_rgb(roi)
-                    control_obj.update_samples(frame, roi, rgb_samples, pose_angles)
-                    # cv2.imshow("Roi", roi)
-
-                    # Display FPS
-                    cv2.putText(
-                        frame,
-                        f"FPS: {int(fps)}",
-                        (20, 70),
-                        cv2.FONT_HERSHEY_SIMPLEX,
-                        1,
-                        (0, 255, 0),
-                        2,
+                    control_obj.update_samples(
+                        frame, roi, rgb_samples, pose_angles, current_time - prev_time
                     )
-                    cv2.imshow("MediaPipe Face Mesh", frame)
-                    #
-                    if cv2.waitKey(1) & 0xFF == ord("q"):
-                        break
-                    #
-                    yield roi, frame, landmark_list
+                    # cv2.imshow("Roi", roi)
+                    # if fps < 28 or fps > 32:
+                    #    print("FPS: ", fps, "\n")
+                    #    print("time: ", current_time - prev_time, "\n")
+                    prev_time = current_time
 
 
 if __name__ == "__main__":

@@ -25,12 +25,18 @@ class Control:
         self.signal_processor = signal_processor
 
     def update_samples(
-        self, frame: np.array, roi: np.array, sample_rgb: np.array, head_pose: list
+        self,
+        frame: np.array,
+        roi: np.array,
+        sample_rgb: np.array,
+        head_pose: list,
+        time_stamp: float,
     ) -> None:
         self.blackboard.update_frame(frame)
         self.blackboard.update_roi(roi)
         self.blackboard.update_samples_rgb(sample_rgb)
         self.blackboard.update_samples_head_pose(head_pose)
+        self.blackboard.update_time_stamp(time_stamp)
 
     def get_samples(self) -> tuple:
         samples = self.blackboard.get_samples()
@@ -62,11 +68,11 @@ if __name__ == "__main__":
     signal_processor = Signal_processor()
     control_obj = Control(blackboard, 256, signal_processor)
     dash_thread = threading.Thread(target=run_dash_app, args=(control_obj,))
-    dash_thread.start()
-
+    image_thread = threading.Thread(target=ip.face_processing, args=(control_obj,))
     signal_processor_thread = threading.Thread(
         target=signal_processor.signal_processing_function
     )
+
+    image_thread.start()
+    dash_thread.start()
     signal_processor_thread.start()
-    for i in ip.face_processing(control_obj):
-        pass
