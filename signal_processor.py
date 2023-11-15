@@ -191,7 +191,7 @@ class Signal_processor:
 
             # Time managment
             duration = time.time() - start_time
-            sleep_time = max(0, 1 / 30 - duration)
+            sleep_time = max(0, 1 / 4 - duration)
             time.sleep(sleep_time)
             print(
                 "time to process [rPPG, Rhythmic noise surpression, post processing]: ",
