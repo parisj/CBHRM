@@ -13,7 +13,6 @@ from dash_bootstrap_templates import load_figure_template
 import dash_daq as daq
 import plotly.graph_objects as go
 import threading
-import flask
 
 # Load figure templates for both light and dark themes
 load_figure_template(["yeti", "yeti_dark"])
@@ -154,14 +153,13 @@ def run_dash_app(
         ],
     )
     def update_signal_plots(n):
-        rPPG = control_obj.blackboard.get_samples_rPPG()
         rPPG_filtered = control_obj.blackboard.get_bandpass_filtered()
         post_processed_rPPG = control_obj.blackboard.get_post_processed_rPPG()
         hr = control_obj.blackboard.get_hr()
         monitoring_data, offset_md = control_obj.get_monitoring_data()
         hrv = control_obj.blackboard.get_rmssd()
 
-        if rPPG is None or rPPG_filtered is None:
+        if rPPG_filtered is None:
             return (
                 dash.no_update,
                 dash.no_update,

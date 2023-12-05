@@ -21,3 +21,9 @@
 [signal]
     length_samples = 256
     fps = 30 
+
+[reference_measurement]
+    use_reference = false #False = OFF, true = ON 
+    
+[result]
+    path = "result.cvs"

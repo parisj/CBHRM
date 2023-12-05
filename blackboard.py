@@ -11,7 +11,7 @@ class Blackboard:
         self.roi = None
         self.initial_samples_event = initial_samples_event
         self.max_len = max_len
-
+        self.count_rPPG = 0
         # RGB signals
         self.samples_r = deque(maxlen=max_len)
         self.samples_b = deque(maxlen=max_len)
@@ -33,7 +33,7 @@ class Blackboard:
         self.time_stamp = deque(
             maxlen=max_len,
         )
-        self.array_rPPGs = np.empty((0, 256), dtype=np.float32)
+        self.small_rPPGs = np.empty((0, 256), dtype=np.float32)
         self.post_processed_rPPG = None
         self.weights = None
         self.hr = deque(maxlen=11230)
@@ -83,8 +83,9 @@ class Blackboard:
         self.samples_rhythmic = rhythmic
 
     def update_bandpass_filtered(self, bandpass_filtered: np.array) -> None:
+        self.small_rPPG = bandpass_filtered
         self.bandpass_filtered = bandpass_filtered
-        self.array_rPPGs = np.vstack((self.array_rPPGs, bandpass_filtered))
+        self.count_rPPG += 1
 
     def update_post_processed_rPPG(self, post_processed_rPPG: np.array) -> None:
         self.post_processed_rPPG = post_processed_rPPG
@@ -110,6 +111,9 @@ class Blackboard:
 
     def update_diff_peaks(self, diff_peaks: List) -> None:
         self.diff_peaks = diff_peaks
+
+    def increment_count_rPPG(self, increment: int) -> None:
+        self.count_rPPG += increment
 
     def update_rmssd(self, rmssd: float) -> None:
         self.rmssd.append(rmssd)
@@ -186,8 +190,11 @@ class Blackboard:
     def get_bandpass_filtered(self) -> np.array:
         return self.bandpass_filtered
 
-    def get_array_rPPGs(self) -> np.array:
-        return self.array_rPPGs
+    def get_small_rPPG(self) -> np.array:
+        return self.small_rPPG
+
+    def get_count_rPPG(self) -> int:
+        return self.count_rPPG
 
     def get_post_processed_rPPG(self) -> np.array:
         return self.post_processed_rPPG

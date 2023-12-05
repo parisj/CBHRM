@@ -9,6 +9,7 @@ import threading
 from reference_meas import HeartRateMonitor
 import csv
 from viztracer import VizTracer
+import os
 
 
 class Control:
@@ -77,6 +78,19 @@ class Control:
         return self.blackboard.get_bool_reference()
 
     def write_results(self, path, write_event, stop_event) -> None:
+        # Check if file exists and create it with header if it doesn't
+        if not os.path.exists(path):
+            with open(path, "w", newline="") as file:
+                writer = csv.writer(file)
+                writer.writerow(
+                    [
+                        "Peaks",
+                        "Difference Between Peaks",
+                        "Heart Rate",
+                        "Heart Rate Variability",
+                    ]
+                )
+
         # THREAD HANDLING!! Combine with thread controller
         while not stop_event.is_set():
             write_event.wait()
@@ -86,16 +100,6 @@ class Control:
             hrv = self.blackboard.get_rmssd()
             with open(path, "a", newline="") as file:
                 writer = csv.writer(file)
-                # Check if the file is empty to write the header
-                if file.tell() == 0:
-                    writer.writerow(
-                        [
-                            "Peaks",
-                            "Difference Between Peaks",
-                            "Heart Rate",
-                            "Heart Rate Variability",
-                        ]
-                    )
 
                 # Write data
                 writer.writerow(
@@ -142,27 +146,28 @@ if __name__ == "__main__":
     # tracer.start()
     image_thread.start()
     signal_processor_thread.start()
-    write_thread.start()
+
     dash_thread.start()
+    # write_thread.start()
 
     try:
         # Wait for a condition or user input to stop the threads
-        input("Press Enter to stop all threads...")
+        input("\n" + "Press Enter to stop all threads..." + "\n")
 
     except KeyboardInterrupt:
         # Handle keyboard interrupts (Ctrl+C)
-        print("Stopping threads due to keyboard interrupt...")
+        print("\n" + "Stopping threads due to keyboard interrupt..." + "\n")
 
     finally:
         # Signal all threads to stop
         stop_event.set()
         # Wait for all threads to finish
         image_thread.join()
-        write_thread.join()
+        # write_thread.join()
         signal_processor_thread.join()
         # tracer.stop()
         # tracer.save(output_file="result.json")
         dash_thread.join()
         # stop_dash_app()
 
-        print("All threads have been stopped.")
+        print("\n" + "All threads have been stopped." + "\n")
