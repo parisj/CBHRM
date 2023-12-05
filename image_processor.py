@@ -137,12 +137,14 @@ def headpose_landmarks(
     return head_lm_2d, head_lm_3d
 
 
-def face_processing(control_pass) -> (np.array, np.array, list):
+def face_processing(
+    control_pass, took_sample_event, stop_event, new_sample_event
+) -> (np.array, np.array, list):
     # Set the shared control object
     control_obj = control_pass
 
     # Start the video stream (Thread start)
-    video_stream = VideoStream().start()
+    video_stream = VideoStream(took_sample_event, stop_event).start()
 
     # Initialise the face mesh
     mp_face_mesh = mp.solutions.face_mesh
@@ -164,7 +166,6 @@ def face_processing(control_pass) -> (np.array, np.array, list):
         for frame in video_stream.update():
             # Calculate FPS
             current_time = time.time()
-            fps = 1 / (current_time - prev_time)
 
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
@@ -195,18 +196,16 @@ def face_processing(control_pass) -> (np.array, np.array, list):
                     # print("pose_angles", pose_angles, "\n")
                     # retrieve rgb samples from roi
                     rgb_samples = mean_intensities_rgb(roi)
+                    duration = current_time - prev_time
+                    # sleep_time = max(0, 1 / 30 - duration)
+                    # time.sleep(sleep_time)
                     control_obj.update_samples(
-                        frame, roi, rgb_samples, pose_angles, current_time - prev_time
+                        frame, roi, rgb_samples, pose_angles, duration
                     )
+                    new_sample_event.set()
                     # cv2.imshow("Roi", roi)
                     # if fps < 28 or fps > 32:
                     #    print("FPS: ", fps, "\n")
                     #    print("time: ", current_time - prev_time, "\n")
+
                     prev_time = current_time
-
-
-if __name__ == "__main__":
-    signal_processor = Signal_processor()
-    control_obj = control.Control(256)
-    for frame in face_processing(control_obj):
-        print("...")

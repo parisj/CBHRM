@@ -85,7 +85,7 @@ def main():
     node = Node()
     node.set_network_key(0x00, ANTPLUS_NETWORK_KEY)
     device = HeartRate(node, device_id=0)
-    print(cv2.getBuildInformation())
+
     hr_thread = threading.Thread(target=rec_HR, args=(0, hr_state, lock, node, device))
     hr_thread.start()
 

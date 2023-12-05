@@ -2,7 +2,16 @@ import numpy as np
 from collections import deque
 import cv2
 from scipy.fftpack import fft, ifft, fftfreq
-from scipy.signal import butter, sosfiltfilt, filtfilt, spectrogram, find_peaks
+from scipy.signal import (
+    butter,
+    sosfiltfilt,
+    filtfilt,
+    spectrogram,
+    find_peaks,
+    lfilter,
+    iirfilter,
+    welch,
+)
 import time
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
@@ -21,12 +30,13 @@ TODO:
 
 
 class Signal_processor:
-    def __init__(self) -> None:
+    def __init__(self, write_event) -> None:
         self.control_obj = None
         self.samples_rgb = None
         self.sample_head_pose = None
         self.sample_pos = None
         self.pose_head = None
+        self.write_event = write_event
 
     def attach(self, control_obj: "control.Control") -> None:
         self.control_obj = control_obj
@@ -86,18 +96,6 @@ class Signal_processor:
         rPPG = self.control_obj.get_samples_rPPG()
         head_x, head_y, head_z = resampled_head
 
-        #       f, t, Sxx = spectrogram(
-        #           rPPG, fs=sampling_rate, nperseg=64, noverlap=32, window="hann"
-        #       )
-        #       # Plotting
-        #       plt.figure(figsize=(15, 8))
-        #       plt.pcolormesh(t, f, Sxx, shading="gouraud")
-        #       plt.ylabel("Frequency [Hz]")
-        #       plt.xlabel("Time [sec]")
-        #       plt.ylim([0, 50])
-        #       plt.colorbar(label="Intensity")
-        #       plt.show()
-
         # FFT of signals
         rPPG_fft = fft(rPPG)
         head_x_fft, head_y_fft, head_z_fft = fft(head_x), fft(head_y), fft(head_z)
@@ -121,19 +119,6 @@ class Signal_processor:
         # IFFT to get back to time domain
         filtered_rPPG = np.real(ifft(rhythmic_noise_suppressed))
 
-        #        f, t, Sxx = spectrogram(
-        #            filtered_rPPG, fs=sampling_rate, nperseg=64, noverlap=32, window="hann"
-        #        )
-        #
-        #        # Plotting
-        #        plt.figure(figsize=(15, 8))
-        #        plt.pcolormesh(t, f, Sxx, shading="gouraud")
-        #        plt.ylabel("Frequency [Hz]")
-        #        plt.xlabel("Time [sec]")
-        #        plt.ylim([0, 50])
-        #        plt.colorbar(label="Intensity")
-        #        plt.show()
-
         # Update blackboard
         self.control_obj.blackboard.update_samples_rhythmic(filtered_rPPG)
 
@@ -150,8 +135,16 @@ class Signal_processor:
         low = highest_freq - 0.235
 
         # Design 50th-order Butterworth bandpass filter
+        # sos = iirfilter(
+        #    25,
+        #    Wn=[low, high],
+        #    fs=sampling_rate,
+        #    btype="bandpass",
+        #    ftype="butter",
+        #    output="sos",
+        # )
         sos = butter(
-            N=30, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
+            N=23, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
         )
 
         # Apply filter
@@ -162,19 +155,21 @@ class Signal_processor:
         # Update blackboard
         self.control_obj.blackboard.update_bandpass_filtered(bandpass_filtered)
 
-    def signal_processing_function(self) -> None:
-        while True:
+    def signal_processing_function(
+        self, stop_event, initial_samples_event, new_sample_event
+    ) -> None:
+        while not stop_event.is_set():
+            initial_samples_event.wait()
+            # if self.control_obj.blackboard.get_frame() is None:
+            #    time.sleep(0.1)
+            #    continue
+
+            # if len(self.control_obj.blackboard.get_samples_rgb()[0]) <= 255:
+            #    time.sleep(0.1)
+            #    continue
+            new_sample_event.wait()
             start_time = time.time()
-            if self.control_obj.blackboard.get_frame() is None:
-                time.sleep(1)
-                continue
-
-            if len(self.control_obj.blackboard.get_samples_rgb()[0]) <= 255:
-                time.sleep(1)
-                continue
-
             # Processing steps
-
             (
                 samples_rgb,
                 samples_head,
@@ -191,19 +186,14 @@ class Signal_processor:
 
             # Time managment
             duration = time.time() - start_time
-            sleep_time = max(0, 1 / 30 - duration)
-            time.sleep(sleep_time)
-            print(
-                "time to process [rPPG, Rhythmic noise surpression, post processing]: ",
-                duration,
-            )
-            # postprocessing steps
-            # TODO HR Calculation
-            # TODO HRV Calculation
+            # sleep_time = max(0, 1 / 30 - duration)
+            # time.sleep(sleep_time)
+            if duration > 1 / 30:
+                print("time to process longer than 30 fps", duration)
+            new_sample_event.clear()
 
     def resample_to_target_time(self, samples, time_stamps, target_framerate=30):
         total_time = sum(time_stamps)
-
         target_time_intervals = np.linspace(0, total_time, 256)
 
         # Create a function for linear interpolation using SciPy
@@ -213,8 +203,6 @@ class Signal_processor:
 
         # Interpolate the samples at the desired time intervals
         interpolated_values = interp_func(target_time_intervals)
-
-        # Create a new deque with the interpolated samples and their corresponding times
 
         return interpolated_values
 
@@ -263,10 +251,6 @@ class Signal_processor:
         if old_weights is None and final_rPPG is None:
             final_rPPG = array_rPPGs[0]
             weights = np.ones(final_length)
-            print("first time")
-            # print("final_rPPG", final_rPPG.shape, "\n")
-            # print("new weights", weights, "\n")
-            # print("shape of new weights", weights.shape, "\n")
 
         elif number_signals > 0 and number_signals <= signal_length:
             old_weights = self.control_obj.blackboard.get_weights()
@@ -278,17 +262,6 @@ class Signal_processor:
             final_rPPG = np.append(non_scaled_rPPG, np.zeros(shift_amount))
             final_rPPG[-256:] += array_rPPGs[-1]
             final_rPPG = final_rPPG / weights
-            print("middle")
-            # print("final_rPPG", final_rPPG.shape, "\n")
-            # print("old weights", old_weights, "\n", "new weights", weights, "\n")
-            # print(
-            #    "shape of old weights",
-            #    old_weights.shape,
-            #    "\n",
-            #    "shape of new weights",
-            #    weights.shape,
-            #    "\n",
-            # )
 
         elif number_signals > signal_length:
             old_weights = np.arange(255, 0, -1)
@@ -298,27 +271,88 @@ class Signal_processor:
             final_rPPG = np.append(final_rPPG, np.zeros(shift_amount))
             final_rPPG[-256:] += new_int
             final_rPPG[-256:] = final_rPPG[-256:] / weights
-            print("full")
-            # print("final_rPPG", final_rPPG.shape, "\n")
-            # print("old weights", old_weights, "\n", "new weights", weights, "\n")
-            # print(
-            #    "shape of old weights",
-            #    old_weights.shape,
-            #    "\n",
-            #    "shape of new weights",
-            #    weights.shape,
-            #    "\n",
-            # )
 
         self.control_obj.blackboard.update_weights(weights)
         self.control_obj.blackboard.update_post_processed_rPPG(final_rPPG)
         self.heart_rate()
 
     def heart_rate(self) -> None:
-        time_window = 450
+        time_window = 300
         signal = self.control_obj.blackboard.get_post_processed_rPPG()
-        peaks, _ = find_peaks(signal[-time_window:])
-        IBI = np.mean(np.diff(peaks)) / 30
-        HR = 1 / IBI
+        peaks, _ = find_peaks(signal[-time_window:-15], distance=7, prominence=0.1)
+        diff_peaks = np.diff(peaks)
+        IBI = np.mean(diff_peaks) / 30
+        HR = (1 / IBI) * 60
+        rmssd = self.calculate_RMSSD(peaks)
+        # lf, hf = self.calculate_LF_HF(peaks)
         self.control_obj.blackboard.update_hr(HR)
-        print("HR: ", HR, "Scaled HR: ", HR * 60)
+        self.control_obj.blackboard.update_peaks(peaks)
+        self.control_obj.blackboard.update_diff_peaks(diff_peaks)
+        self.control_obj.blackboard.update_rmssd(rmssd)
+        # self.control_obj.blackboard.update_lf(lf)
+        # self.control_obj.blackboard.update_hf(hf)
+        self.write_event.set()
+
+    def identify_peaks_change(self) -> None:
+        peaks = self.control_obj.blackboard.get_peaks()
+        diff_peaks = self.control_obj.blackboard.get_diff_peaks()
+        hr = self.control_obj.blackboard.get_hr()
+        signal = self.control_obj.blackboard.get_post_processed_rPPG()
+        time_window = 540
+
+    def calculate_RMSSD(self, peaks):
+        """
+        Calculate the RMSSD (Root Mean Square of Successive Differences) for HRV
+
+        Returns:
+        float: The RMSSD value.
+        """
+
+        # Convert indices to time intervals (in seconds)
+        time_intervals = np.array(peaks) / 30
+
+        # Calculate successive differences
+        diff = np.diff(time_intervals)
+
+        # Calculate RMSSD
+        rmssd = np.sqrt(np.mean(diff**2))
+        return rmssd
+
+    def calculate_LF_HF(self, peaks):
+        """
+        Calculate the LF (Low Frequency) and HF (High Frequency) components of HRV.
+
+        Returns:
+        tuple: The LF and HF values (normalized with the total power of hf and lf).
+        """
+        # Convert indices to time intervals (in seconds)
+
+        time_intervals = np.array(peaks) / 30
+
+        # Interpolate IBIs at 2.5Hz
+        interpolated_IBIs = np.interp(
+            np.arange(0, time_intervals[-1], 0.4), time_intervals, time_intervals
+        )
+
+        # Calculate power spectral density using Welch's method
+        f, Pxx = welch(interpolated_IBIs, fs=2.5, nperseg=len(interpolated_IBIs))
+
+        # Define LF and HF bands
+        lf_band = (0.04, 0.15)
+        hf_band = (0.15, 0.4)
+
+        # Calculate power in LF and HF bands
+        lf_power = np.trapz(
+            Pxx[(f >= lf_band[0]) & (f <= lf_band[1])],
+            f[(f >= lf_band[0]) & (f <= lf_band[1])],
+        )
+        hf_power = np.trapz(
+            Pxx[(f >= hf_band[0]) & (f <= hf_band[1])],
+            f[(f >= hf_band[0]) & (f <= hf_band[1])],
+        )
+
+        # Normalize LF and HF
+        total_power = lf_power + hf_power
+        lf_normalized = lf_power / total_power
+        hf_normalized = hf_power / total_power
+        return lf_normalized, hf_normalized
