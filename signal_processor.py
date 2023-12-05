@@ -277,7 +277,7 @@ class Signal_processor:
         self.heart_rate()
 
     def heart_rate(self) -> None:
-        time_window = 300
+        time_window = 500
         signal = self.control_obj.blackboard.get_post_processed_rPPG()
         peaks, _ = find_peaks(signal[-time_window:-15], distance=7, prominence=0.1)
         diff_peaks = np.diff(peaks)

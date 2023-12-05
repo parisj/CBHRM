@@ -142,8 +142,9 @@ if __name__ == "__main__":
     # tracer.start()
     image_thread.start()
     signal_processor_thread.start()
-    write_thread.start()
+
     dash_thread.start()
+    write_thread.start()
 
     try:
         # Wait for a condition or user input to stop the threads
