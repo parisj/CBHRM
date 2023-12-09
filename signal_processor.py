@@ -40,8 +40,9 @@ class Signal_processor:
         self.sample_pos = None
         self.pose_head = None
         self.write_event = write_event
-        b, a = butter(N=4, Wn=0.1, btype="low")
-        self.lfilter = RealTimeFilter(b, a)
+        self.b, self.a = butter(N=2, Wn=0.7, btype="low")
+        self.lfilter = RealTimeFilter(self.b, self.a)
+        self.fps = 20
 
     def attach(self, control_obj: "control.Control") -> None:
         self.control_obj = control_obj
@@ -97,7 +98,7 @@ class Signal_processor:
         self.control_obj.blackboard.update_samples_rPPG(H)
 
     def rhythmic_noise_surpression(self, resampled_head):
-        sampling_rate = 20
+        sampling_rate = self.fps
         rPPG = self.control_obj.get_samples_rPPG()
         head_x, head_y, head_z = resampled_head
 
@@ -149,7 +150,7 @@ class Signal_processor:
         #    output="sos",
         # )
         sos = butter(
-            N=33, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
+            N=35, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
         )
 
         # Apply filter
@@ -163,7 +164,7 @@ class Signal_processor:
     def signal_processing_function(
         self, stop_event, initial_samples_event, new_sample_event
     ) -> None:
-        fs = 20
+        fs = self.fps
         delay_tolerance = 0.8
         # tracer = VizTracer()
         # tracer.start()
@@ -195,9 +196,9 @@ class Signal_processor:
 
             # Time managment
             duration = time.time() - start_time
-            # sleep_time = max(0, 1 / 30 - duration)
+            # sleep_time = max(0, 1 / self.fps- duration)
             # time.sleep(sleep_time)
-            if duration > 1 / 20:
+            if duration > 1 / fs:
                 print(
                     "WARNING: PROCESSING LONGER THAN SAMPLING FREQUENCY ALLOWS",
                     duration,
@@ -208,17 +209,16 @@ class Signal_processor:
 
     def resample_to_target_time(self, samples, time_stamps, target_framerate=20):
         total_time = sum(time_stamps)
-        print(total_time)
         target_time_intervals = np.linspace(0, total_time, 256)
 
         # Create a function for linear interpolation using SciPy
         interp_func = interp1d(
             np.cumsum(time_stamps), samples, kind="linear", fill_value="extrapolate"
         )
-
+        b, a = self.b, self.a
         # Interpolate the samples at the desired time intervals
         interpolated_values = interp_func(target_time_intervals)
-
+        # interpolated_values = filtfilt(b, a, interpolated_values)
         return interpolated_values
 
     def resample_samples(self, samples_rgb, samples_head, time_stamps):
@@ -249,12 +249,18 @@ class Signal_processor:
         number_signals = self.control_obj.blackboard.get_count_rPPG()
         old_weights = self.control_obj.blackboard.get_weights()
         final_rPPG = self.control_obj.blackboard.get_post_processed_rPPG()
-
+        if final_rPPG is not None:
+            final_rPPG = final_rPPG.copy()
         f_resample = fs
         # depending on how often the rPPG signal is caluclated
-        # if it is calculated every sample it's 30
+        # if it is calculated every sample it's fps
         f_recalculated = fs
-
+        duration = time.time() - start_time
+        if duration > 1 / fs:
+            delay = True
+            shift_delay = int(duration * fs)
+            number_signals += shift_delay
+            self.control_obj.blackboard.increment_count_rPPG(shift_delay)
         # Length of the rPPG signals
         signal_length = 256
 
@@ -275,31 +281,35 @@ class Signal_processor:
             weights[-max(flanks) :] = flanks[::-1]
             weights[weights == 0] = min(number_signals, 256)
             non_scaled_rPPG = final_rPPG * old_weights
-            final_rPPG = np.append(non_scaled_rPPG, np.zeros(shift_amount))
+            final_rPPG = np.append(
+                non_scaled_rPPG, np.zeros(shift_amount + shift_delay)
+            )
             final_rPPG[-256:] += small_rPPG
             final_rPPG = final_rPPG / weights
 
         elif number_signals > signal_length:
             old_weights = np.arange(255, 0, -1)
             weights = np.arange(256, 0, -1)
-            final_rPPG[-255:] = final_rPPG[-255:] * old_weights
+            final_rPPG[-255 + shift_delay :] = (
+                final_rPPG[-255 + shift_delay :] * old_weights[shift_delay:]
+            )
             new_int = small_rPPG
-            final_rPPG = np.append(final_rPPG, np.zeros(shift_amount))
+            final_rPPG = np.append(final_rPPG, np.zeros(shift_amount + shift_delay))
             final_rPPG[-256:] += new_int
             final_rPPG[-256:] = final_rPPG[-256:] / weights
 
         self.control_obj.blackboard.update_weights(weights)
         self.control_obj.blackboard.update_post_processed_rPPG(final_rPPG)
 
-        self.heart_rate()
+        self.heart_rate(delay, shift_delay)
 
     def heart_rate(self, delay=False, shift=None) -> None:
-        time_window = 170
+        time_window = 256
         signal = self.control_obj.blackboard.get_post_processed_rPPG()
-        peaks, _ = find_peaks(signal[-time_window:-10], distance=7, prominence=0.1)
+        peaks, _ = find_peaks(signal[-time_window:-15], distance=6, prominence=0.1)
         diff_peaks = np.diff(peaks)
 
-        IBI = np.mean(diff_peaks) / 20
+        IBI = np.mean(diff_peaks) / self.fps
         HR = (1 / IBI) * 60
         # HR = self.lfilter.process_sample(HR)
 
@@ -330,7 +340,7 @@ class Signal_processor:
         """
 
         # Convert indices to time intervals (in seconds)
-        time_intervals = np.array(peaks) / 20
+        time_intervals = np.array(peaks) / self.fps
 
         # Calculate successive differences
         diff = np.diff(time_intervals)
@@ -348,7 +358,7 @@ class Signal_processor:
         """
         # Convert indices to time intervals (in seconds)
 
-        time_intervals = np.array(peaks) / 20
+        time_intervals = np.array(peaks) / self.fps
 
         # Interpolate IBIs at 2.5Hz
         interpolated_IBIs = np.interp(

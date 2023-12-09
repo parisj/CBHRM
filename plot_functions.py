@@ -126,6 +126,33 @@ def plot_rPPG_signal_and_noise(rPPG_filtered):
     return fig
 
 
+def plot_rhythmic_signal(rPPG_filtered):
+    """
+    Plot rPPG signal.
+    """
+
+    # Create a sequence of indices for the x-axis based on the length of the rPPG signal
+    time_axis = np.arange(len(rPPG_filtered))
+
+    # Create Plotly figure
+    fig = go.Figure()
+
+    # Add trace for the rPPG signal
+    fig.add_trace(
+        go.Scatter(x=time_axis, y=rPPG_filtered, mode="lines", name="rPPG Signal")
+    )
+
+    # Update layout
+    fig.update_layout(
+        title="Rhytmic Signal ",
+        xaxis_title="Sample Number",
+        yaxis_title="Amplitude",
+        template="plotly_white",
+    )
+
+    return fig
+
+
 def plot_frequency_domain(sig, fs=30):
     """
     Plot the frequency domain representation of the signal.

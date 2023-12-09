@@ -117,6 +117,10 @@ def run_dash_app(
                                         dcc.Graph(id="post_processed_rPPG-plot"),
                                         width=12,
                                     ),
+                                    dbc.Col(
+                                        dcc.Graph(id="rhythm-plot"),
+                                        width=12,
+                                    ),
                                 ]
                             ),
                             dbc.Row(
@@ -146,6 +150,7 @@ def run_dash_app(
             Output("hr-plot", "figure"),
             Output("HR-reference-plot", "figure"),
             Output("hrv-plot", "figure"),
+            Output("rhythm-plot", "figure"),
         ],
         [
             Input("plots_signals", "n_intervals"),
@@ -155,6 +160,8 @@ def run_dash_app(
     def update_signal_plots(n):
         rPPG_filtered = control_obj.blackboard.get_bandpass_filtered()
         post_processed_rPPG = control_obj.blackboard.get_post_processed_rPPG()
+        rhythmic = control_obj.blackboard.get_samples_rhythmic()
+
         hr = control_obj.blackboard.get_hr()
         monitoring_data, offset_md = control_obj.get_monitoring_data()
         hrv = control_obj.blackboard.get_rmssd()
@@ -168,11 +175,13 @@ def run_dash_app(
                 dash.no_update,
                 dash.no_update,
                 dash.no_update,
+                dash.no_update,
             )  # Corrected return type
 
         rPPG_plot = pf.plot_rPPG_signal_and_noise(rPPG_filtered)
         frequency_plot = pf.plot_frequency_domain(rPPG_filtered)
         post_processed_plot = pf.plot_post_processed_rPPG(post_processed_rPPG)
+        rhythmic_plot = pf.plot_rhythmic_signal(rhythmic)
         if len(hr) >= 2:
             hr_info = pf.plot_hr(hr[-1], hr[-2])
             if monitoring_data is not None:
@@ -217,6 +226,7 @@ def run_dash_app(
             plot_hr,
             plot_hr_ref,
             plot_hrv,
+            rhythmic_plot,
         )
 
     # clientside_callback(
