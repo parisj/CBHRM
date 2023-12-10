@@ -37,6 +37,7 @@ class Signal_processor:
         self.sample_pos = None
         self.pose_head = None
         self.write_event = write_event
+        self.fps = 20
 
     def attach(self, control_obj: "control.Control") -> None:
         self.control_obj = control_obj
@@ -92,7 +93,7 @@ class Signal_processor:
         self.control_obj.blackboard.update_samples_rPPG(H)
 
     def rhythmic_noise_surpression(self, resampled_head):
-        sampling_rate = 30
+        sampling_rate = self.fps
         rPPG = self.control_obj.get_samples_rPPG()
         head_x, head_y, head_z = resampled_head
 
@@ -144,7 +145,7 @@ class Signal_processor:
         #    output="sos",
         # )
         sos = butter(
-            N=23, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
+            N=35, Wn=[low, high], btype="bandpass", fs=sampling_rate, output="sos"
         )
 
         # Apply filter
@@ -186,13 +187,13 @@ class Signal_processor:
 
             # Time managment
             duration = time.time() - start_time
-            # sleep_time = max(0, 1 / 30 - duration)
+            # sleep_time = max(0, 1 / self.fps - duration)
             # time.sleep(sleep_time)
-            if duration > 1 / 30:
-                print("time to process longer than 30 fps", duration)
+            if duration > 1 / self.fps:
+                print("time to process longer than self.fps fps", duration)
             new_sample_event.clear()
 
-    def resample_to_target_time(self, samples, time_stamps, target_framerate=30):
+    def resample_to_target_time(self, samples, time_stamps):
         total_time = sum(time_stamps)
         target_time_intervals = np.linspace(0, total_time, 256)
 
@@ -233,10 +234,10 @@ class Signal_processor:
         final_rPPG = self.control_obj.blackboard.get_post_processed_rPPG()
         if final_rPPG is not None:
             final_rPPG = final_rPPG.copy()
-        f_resample = 30
+        f_resample = self.fps
         # depending on how often the rPPG signal is caluclated
-        # if it is calculated every sample it's 30
-        f_recalculated = 30
+        # if it is calculated every sample it's self.fps
+        f_recalculated = self.fps
 
         # Length of the rPPG signals
         signal_length = array_rPPGs.shape[1]
@@ -281,7 +282,7 @@ class Signal_processor:
         signal = self.control_obj.blackboard.get_post_processed_rPPG()
         peaks, _ = find_peaks(signal[-time_window:-15], distance=7, prominence=0.1)
         diff_peaks = np.diff(peaks)
-        IBI = np.mean(diff_peaks) / 30
+        IBI = np.mean(diff_peaks) / self.fps
         HR = (1 / IBI) * 60
         rmssd = self.calculate_RMSSD(peaks)
         # lf, hf = self.calculate_LF_HF(peaks)
@@ -309,7 +310,7 @@ class Signal_processor:
         """
 
         # Convert indices to time intervals (in seconds)
-        time_intervals = np.array(peaks) / 30
+        time_intervals = np.array(peaks) / self.fps
 
         # Calculate successive differences
         diff = np.diff(time_intervals)
@@ -327,7 +328,7 @@ class Signal_processor:
         """
         # Convert indices to time intervals (in seconds)
 
-        time_intervals = np.array(peaks) / 30
+        time_intervals = np.array(peaks) / self.fps
 
         # Interpolate IBIs at 2.5Hz
         interpolated_IBIs = np.interp(

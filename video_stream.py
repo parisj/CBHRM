@@ -14,18 +14,13 @@ class VideoStream:
 
         gstreamer_pipeline = (
             'mfvideosrc device-name="HD Pro Webcam C920" ! '
-            "video/x-raw, format=NV12, width=960, height=720, pixel-aspect-ratio=1/1, framerate=30/1 ! "
+            "video/x-raw, format=NV12, width=1600, height=896, pixel-aspect-ratio=1/1, framerate=20/1 ! "
             "videoconvert ! "  # Convert to a format compatible with appsink, if necessary
             "appsink"
         )
 
         self.stream = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
-        WIDTH, HEIGHT = 960, 720
-
-        self.stream.set(cv2.CAP_PROP_FPS, 30)
-        self.stream.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc("M", "J", "P", "G"))
-        self.stream.set(cv2.CAP_PROP_FRAME_WIDTH, WIDTH)
-        self.stream.set(cv2.CAP_PROP_FRAME_HEIGHT, HEIGHT)
+        WIDTH, HEIGHT = 1600, 896
 
         self.event = e
         self.stop_event = stop_event

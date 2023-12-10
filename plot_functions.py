@@ -105,7 +105,7 @@ def plot_rPPG_signal_and_noise(rPPG_filtered):
     """
 
     # Create a sequence of indices for the x-axis based on the length of the rPPG signal
-    time_axis = np.arange(len(rPPG_filtered))
+    time_axis = np.arange(len(rPPG_filtered)) / 20
 
     # Create Plotly figure
     fig = go.Figure()
@@ -118,7 +118,7 @@ def plot_rPPG_signal_and_noise(rPPG_filtered):
     # Update layout
     fig.update_layout(
         title="Rhythmic Noise Suppressed rPPG Signal",
-        xaxis_title="Sample Number",
+        xaxis_title="Time (seconds)",
         yaxis_title="Amplitude",
         template="plotly_white",
     )
@@ -157,18 +157,22 @@ def plot_frequency_domain(sig, fs=30):
         xaxis_title="Frequency [Hz]",
         yaxis_title="Magnitude",
         template="plotly_white",
+        xaxis_range=[0, 10],
     )
 
     return fig
 
 
-def plot_post_processed_rPPG(rppg_signal):
+def plot_post_processed_rPPG(rppg_signal, fps=20):
     """
-    Plot the post-processed rPPG signal.
+    Plot the post-processed rPPG signal with time in seconds on the x-axis.
 
+    Parameters:
+    rppg_signal (numpy.ndarray): The rPPG signal array.
+    fps (int): Frames per second, used to convert sample numbers to time in seconds.
     """
-    # Create a sequence of indices for the x-axis based on the length of the rPPG signal
-    time_axis = np.arange(len(rppg_signal))
+    # Calculate the time in seconds for each sample
+    time_axis = np.arange(len(rppg_signal)) / fps
 
     # Create Plotly figure
     fig = go.Figure()
@@ -181,7 +185,7 @@ def plot_post_processed_rPPG(rppg_signal):
     # Update layout
     fig.update_layout(
         title="Post-Processed rPPG Signal",
-        xaxis_title="Sample Number",
+        xaxis_title="Time (seconds)",
         yaxis_title="Amplitude",
         template="plotly_white",
     )
@@ -234,91 +238,85 @@ def plot_hr_ref(hr_est, hr_ref, value):
 
 def plot_heart_rate(heartrate_data, **kwargs):
     """
-    Plot RGB channels.
-    """
-    if not kwargs:
-        monitored_data = None
-        offset_md = None
-    else:
-        monitored_data = kwargs["monitoring_hr"]
-        offset_md = kwargs["offset_md"]
+    Plot Heart Rate data.
 
-    if monitored_data is None or offset_md is None:
-        return {
-            "data": [
-                {
-                    "x": list(range(11230)),
-                    "y": list(heartrate_data),
-                    "type": "scatter",
-                    "name": "R",
-                    "marker": {"color": "red"},
-                },
-            ],
-            "layout": {"title": "Hear Rate "},
+    Parameters:
+    heartrate_data (list): Heart rate data.
+    **kwargs: Optional arguments that can be 'monitoring_hr' and 'offset_md'.
+    """
+    monitored_data = kwargs.get("monitoring_hr")
+    offset_md = kwargs.get("offset_md")
+
+    data = [
+        {
+            "x": [x / 20 for x in range(len(heartrate_data))],
+            "y": list(heartrate_data),
+            "type": "scatter",
+            "name": "Estimated HR",
+            "marker": {"color": "red"},
         }
-    else:
-        return {
-            "data": [
-                {
-                    "x": list(range(11230)),
-                    "y": list(heartrate_data),
-                    "type": "scatter",
-                    "name": "Estimated HR",
-                    "marker": {"color": "red"},
-                },
-                {
-                    "x": list(range(offset_md, 11230)),
-                    "y": list(monitored_data),
-                    "type": "scatter",
-                    "name": "Reference HR",
-                    "marker": {"color": "black"},
-                },
-            ],
-            "layout": {"title": "Hear Rate "},
-        }
+    ]
+
+    if monitored_data is not None and offset_md is not None:
+        data.append(
+            {
+                "x": [
+                    x / 20 for x in range(offset_md, offset_md + len(monitored_data))
+                ],
+                "y": list(monitored_data),
+                "type": "scatter",
+                "name": "Reference HR",
+                "marker": {"color": "black"},
+            }
+        )
+
+    return {
+        "data": data,
+        "layout": {
+            "title": "Heart Rate",
+            "xaxis": {"title": "Time (seconds)"},
+            "yaxis": {"title": "Heart Rate (BPM)"},
+        },
+    }
 
 
 def plot_hrv(hrv, **kwargs):
     """
-    Plot RGB channels.
-    """
-    if not kwargs:
-        monitored_hrv = None
-        offset_md = None
-    else:
-        monitored_hrv = kwargs["monitoring_hrv"]
-        offset_md = kwargs["offset_md"]
+    Plot Heart Rate Variability (HRV).
 
-    if monitored_hrv is None or offset_md is None:
-        return {
-            "data": [
-                {
-                    "x": list(range(11230)),
-                    "y": list(hrv),
-                    "type": "scatter",
-                    "name": "R",
-                    "marker": {"color": "red"},
-                },
-            ],
-            "layout": {"title": "Hear Rate Variability (RMSSD)"},
+    Parameters:
+    hrv (list): HRV data.
+    **kwargs: Optional arguments that can be 'monitoring_hrv' and 'offset_md'.
+    """
+    monitored_hrv = kwargs.get("monitoring_hrv")
+    offset_md = kwargs.get("offset_md")
+
+    data = [
+        {
+            "x": [x / 20 for x in range(len(hrv))],
+            "y": list(hrv),
+            "type": "scatter",
+            "name": "Estimated HRV (RMSSD)",
+            "marker": {"color": "red"},
         }
-    else:
-        return {
-            "data": [
-                {
-                    "x": list(range(11230)),
-                    "y": list(hrv),
-                    "type": "scatter",
-                    "name": "Estimated HRV (RMSSD)",
-                    "marker": {"color": "red"},
-                },
-                {
-                    "x": list(range(offset_md, 11230)),
-                    "y": list(monitored_hrv),
-                    "type": "scatter",
-                    "name": "Reference HRV",
-                    "marker": {"color": "black"},
-                },
-            ],
-            "layout": {"title": "Hear Rate "},
-        }
+    ]
+
+    if monitored_hrv is not None and offset_md is not None:
+        data.append(
+            {
+                "x": [x / 20 for x in range(offset_md, offset_md + len(monitored_hrv))],
+                "y": list(monitored_hrv),
+                "type": "scatter",
+                "name": "Reference HRV",
+                "marker": {"color": "black"},
+            }
+        )
+
+    return {
+        "data": data,
+        "layout": {
+            "title": "Heart Rate Variability (RMSSD)",
+            "xaxis": {"title": "Time (seconds)"},
+            "yaxis": {"title": "HRV Value"},
+        },
+    }
