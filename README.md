@@ -115,14 +115,10 @@ openant scan --outfile devices.json
 ~~~
 CBHRM/
     .gitignore
-    folder_structure1.txt
-    notes.txt
     README.md
     requirements.txt
     run_application.py
     settings.toml
-    test.py
- 
     dataset/
         P1/
             Post_Workout/
