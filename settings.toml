@@ -1,23 +1,81 @@
+# Face mask configuration
 [facemask]
+    # Points defining the facemask area
     facemask_points = [151, 299, 298, 411, 410, 11, 186, 187, 68, 69]
+    # Points for the left eye
     left_eye_points = [226,113,225,224,223,222,221,189,245,233,232,231,230,229,228,31]
+    # Points for the right eye
     right_eye_points = [446,342,445,444,443,442,441,413,465,453,452,451,450,449,448,446]
 
-    head_pose_points = [1,  #Nose 
-                        199,# Chin
-                        33, # Left Eye
-                        263,# Right Eye
-                        61, # Left Mouth
-                        291 # Right Mouth
+    # Points for head pose estimation
+    head_pose_points = [1,  # Nose 
+                        199, # Chin
+                        33,  # Left Eye
+                        263, # Right Eye
+                        61,  # Left Mouth
+                        291  # Right Mouth
                         ]
+    # Base mapping for face
     map_face_base = [[0, 0, 0],             # Nose tip
-                     [0.0, -330.0, -65.0],        # Chin
-                     [-225.0, 170.0, -135.0],     # Left eye left corner
-                     [225.0, 170.0, -135.0],      # Right eye right corner
-                     [-150.0, -150.0, -125.0],    # Left Mouth corner
-                     [150.0, -150.0, -125.0]      # Right mouth corner
+                     [0.0, -330.0, -65.0],  # Chin
+                     [-225.0, 170.0, -135.0], # Left eye left corner
+                     [225.0, 170.0, -135.0],  # Right eye right corner
+                     [-150.0, -150.0, -125.0], # Left Mouth corner
+                     [150.0, -150.0, -125.0]   # Right mouth corner
                   ]
 
-[signal]
-    length_samples = 256
-    fps = 30 
+# Camera settings
+[camera]
+    fps_camera = 20  # Frames per second
+    resolution = [960,720]  # Camera resolution
+
+[video_source]
+    live = false
+    path = "dataset/P1/Talking/recording_3.avi"
+    evaluate_dataset = true
+    path_measurements = "dataset/P1/Talking/recording_3.csv"
+
+# Filtering parameters
+[filtering]
+    fs = 20  # Sampling frequency
+    lowpass_order = 6  # Order of the lowpass filter
+    wn_lowpass = 0.6  # Normalized cutoff frequency for lowpass
+    pos_window_l = 32  # Position window length
+    cutoff_window = [0.235, -0.235]  # Cutoff window frequencies
+    bandpass_order = 25
+
+# Heart rate measurement settings
+[heart_rate]
+    time_window = 200  # Time window for measurement
+    start_delay_peak_detection = 15  # Delay before starting peak detection
+    distance = 6  # Minimum distance between peaks
+    prominence = 0  # Minimum prominence of peaks
+
+# Evaluation parameters
+[evaluation]
+    delay = 85 # Delay in evaluation
+    len_hr_min = 21  # Minimum length for heart rate data
+    fps = 20 # Frames per second
+    dashboard_refresh_time = 1000  # Dashboard refresh rate in milliseconds
+    min_ref_measurements = 500  # Minimum reference measurements
+    calibration_time_ref = 300  # Calibration time for reference
+    min_ref_hrv = 90  # Minimum reference for HRV
+    calibration_time_ref_hrv = 50  # Calibration time for HRV reference
+
+# Result configuration
+[result]
+    path = "dataset/P2/breathing2.csv"  # Path to save results
+    write = true  # Enable writing results
+
+# Reference measurement settings
+
+[reference_measurement]
+    hrv_window = 200  # HRV measurement window
+    device_id = 20074
+
+[record_data_set]
+    fps_camera = 20  # Frames per second
+    resolution = [960,720]  # Camera resolution
+    device_id = 20074
+    video_path = "dataset/P2/breathing2.avi"
+    readings_path = "dataset/P2/breathing2.csv"
